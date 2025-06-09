@@ -23,19 +23,15 @@ if(NOT Boost_FOUND)
 endif()
 
 add_executable(boost_websocket_server server.cpp)
-add_executable(boost_websocket_client client.cpp)
 
 # Include Boost headers
 target_include_directories(boost_websocket_server PRIVATE ${Boost_INCLUDE_DIRS})
-target_include_directories(boost_websocket_client PRIVATE ${Boost_INCLUDE_DIRS})
 
 # Link Boost libraries
 target_link_libraries(boost_websocket_server PRIVATE ${Boost_LIBRARIES})
-target_link_libraries(boost_websocket_client PRIVATE ${Boost_LIBRARIES})
 
 # For Windows/Mingw you might need to link extra libraries
 if(MINGW)
     target_link_libraries(boost_websocket_server PRIVATE ws2_32 mswsock)
-    target_link_libraries(boost_websocket_client PRIVATE ws2_32 mswsock)
 endif()
 
