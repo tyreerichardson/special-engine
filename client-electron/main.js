@@ -2,6 +2,10 @@ const { ipcMain } = require('electron')
 const { app, BrowserWindow } = require('electron/main')
 const path = require('node:path')
 
+
+/*
+* Creates the window for the Electron app
+*/
 const createWindow = () => {
     const win = new BrowserWindow({
         width: 800,
@@ -14,6 +18,9 @@ const createWindow = () => {
     win.loadFile('index.html')
 }
 
+/*
+* Calls these functions when the app is ready
+*/
 app.whenReady().then(() => {
     ipcMain.handle('ping', () => 'pong')
     createWindow()
@@ -25,6 +32,9 @@ app.whenReady().then(() => {
     })
 })
 
+/*
+* Closes the application fully when the window is closed
+*/
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit()
