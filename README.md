@@ -135,19 +135,3 @@ nc localhost 1234
 - Extend to a full chat application
 
 ---
-
-## 📄 License
-
-This project is open-source and available under the [MIT License](LICENSE).
-
----
-
-## 👤 Author
-
-**Tyree Richardson**  
-🔗 [LinkedIn](https://www.linkedin.com/in/tyree-richardson-5b564118a/)  
-📧 tyree.yourname@example.com *(Replace with your actual email)*  
-
----
-
-> 💬 *"Built to learn. Built to scale. Built for the Hive."*
