@@ -1,5 +1,6 @@
 # ---- C++ & CMake ----
 build/
+boost_1_78_0/
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
