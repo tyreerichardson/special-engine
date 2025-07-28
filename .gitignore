@@ -1,0 +1,53 @@
+# ---- C++ & CMake ----
+build/
+boost_1_78_0/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.o
+*.obj
+*.so
+*.a
+*.exe
+*.out
+*.log
+*.dll
+*.pdb
+
+# Compiler-specific
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.vcxproj.*
+*.ncb
+*.opensdf
+*.sdf
+*.tlog
+*.idb
+*.ipch
+*.aps
+*.iobj
+*.ipdb
+
+# Boost build output (if built from source)
+stage/
+bin.v2/
+
+# ---- Node.js (WebSocket client) ----
+node_modules/
+package-lock.json
+.env
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ---- VSCode or other IDEs ----
+.vscode/
+.idea/
+*.code-workspace
+
+# ---- OS files ----
+.DS_Store
+Thumbs.db
