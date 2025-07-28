@@ -22,38 +22,60 @@
 #include <boost/asio.hpp>                           // Boost Asio networking
 #include <boost/shared_ptr.hpp>                     // (Not used, replaced by std::shared_ptr)
 #include <boost/enable_shared_from_this.hpp>        // (Unused) Useful when shared_ptrs reference self
+#include <boost/json.hpp>
+
+#include "message.hpp"
 
 using namespace std;
 using boost::asio::ip::tcp; // Use TCP socket classes from Boost Asio
+std::map<std::string, std::shared_ptr<tcp::socket>> clients;
+boost::mutex clients_mutex;
 
-// Handles communication with a single client on its own thread
+
 void handle_client(std::shared_ptr<tcp::socket> socket) {
     try {
-        char data[1024]; // Buffer to hold client message data
+        std::string buffer;
 
         while (true) {
-            std::memset(data, 0, sizeof(data)); // Clear buffer for new data
+            boost::asio::streambuf read_buf;
             boost::system::error_code error;
 
-            // Attempt to read incoming message from client
-            size_t length = socket->read_some(boost::asio::buffer(data), error);
-
-            // Check if client disconnected cleanly
+            boost::asio::read_until(*socket, read_buf, '\n', error);
             if (error == boost::asio::error::eof) break;
-
-            // Throw if another error occurred
             else if (error) throw boost::system::system_error(error);
 
-            // Print the received message to console
-            std::cout << "Client: " << std::string(data, length) << std::endl;
+            std::istream stream(&read_buf);
+            std::getline(stream, buffer); // Get full message line
 
-            // Prepare and send response message back to client
-            std::string response = "Server received: " + std::string(data, length);
-            boost::asio::write(*socket, boost::asio::buffer(response), error);
+            boost::json::value jv = boost::json::parse(buffer);
+            boost::json::object obj = jv.as_object();
+
+            std::string from = boost::json::value_to<std::string>(obj["message_from"]);
+            std::string to = boost::json::value_to<std::string>(obj["message_to"]);
+            std::string message_id = boost::json::value_to<std::string>(obj["message_id"]);
+
+            // Register sender if not already
+            {
+                boost::mutex::scoped_lock lock(clients_mutex);
+                if (clients.find(from) == clients.end()) {
+                    clients[from] = socket;
+                }
+            }
+
+            std::string serialized_msg = boost::json::serialize(obj) + "\n";
+
+            // Send to recipient
+            {
+                boost::mutex::scoped_lock lock(clients_mutex);
+                if (clients.find(to) != clients.end()) {
+                    boost::asio::write(*clients[to], boost::asio::buffer(serialized_msg));
+                } else {
+                    std::string error_msg = "{\"error\":\"User " + to + " not connected\"}\n";
+                    boost::asio::write(*socket, boost::asio::buffer(error_msg));
+                }
+            }
         }
-
     } catch (std::exception& e) {
-        // Log any exceptions thrown during communication
         std::cerr << "Exception: " << e.what() << std::endl;
     }
 }
