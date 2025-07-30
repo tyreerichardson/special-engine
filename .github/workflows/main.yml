@@ -49,18 +49,19 @@ jobs:
       if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
       working-directory: ${{ env.BOOST_ROOT }}
       run: |
-        ./bootstrap.sh --with-libraries=system,thread,json
-        ./b2 install --prefix=${{ env.BOOST_ROOT }}/stage
+        boost/bootstrap.sh --with-libraries=system,thread,json
+        boost/b2 install --prefix=${{ env.BOOST_ROOT }}/stage
 
     - name: 🏗️ Bootstrap and Build Boost (Windows)
       if: matrix.os == 'windows-latest'
       working-directory: ${{ env.BOOST_ROOT }}
       run: |
-        bootstrap.bat
-        .\b2 install --prefix=stage --with-system --with-thread --with-json
+        ./boost/bootstrap.bat
+        ./boost/b2 install --prefix=stage --with-system --with-thread --with-json
 
     - name: 🧱 Configure with CMake
       run: >
+        cd socketserver;
         cmake -B build
         -DCMAKE_BUILD_TYPE=Release
         -DBOOST_ROOT=${{ env.BOOST_ROOT }}/stage
