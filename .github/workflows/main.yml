@@ -28,6 +28,7 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
+        sudo apt install unzip
 
     - name: 🧰 Install dependencies (macOS)
       if: matrix.os == 'macos-latest'
