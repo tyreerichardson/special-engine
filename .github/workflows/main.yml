@@ -49,8 +49,8 @@ jobs:
       if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
       working-directory: ${{ env.BOOST_ROOT }}
       run: |
-        boost/bootstrap.sh --with-libraries=system,thread,json
-        boost/b2 install --prefix=${{ env.BOOST_ROOT }}/stage
+        ./boost/bootstrap.sh --with-libraries=system,thread,json
+        ./boost/b2 install --prefix=${{ env.BOOST_ROOT }}/stage
 
     - name: 🏗️ Bootstrap and Build Boost (Windows)
       if: matrix.os == 'windows-latest'
