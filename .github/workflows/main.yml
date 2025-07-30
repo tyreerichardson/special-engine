@@ -51,8 +51,8 @@ jobs:
       working-directory: ${{ env.BOOST_ROOT }}
       run: |
         mv boost_${{ env.BOOST_VERSION_UNDERSCORE }} boost;
-        ./boost/bootstrap.sh --with-libraries=system,thread,json;
         cd boost;
+        ./bootstrap.sh --with-libraries=system,thread,json;
         ./b2 install --prefix=${{ env.BOOST_ROOT }}/stage;
 
     - name: 🏗️ Bootstrap and Build Boost (Windows)
