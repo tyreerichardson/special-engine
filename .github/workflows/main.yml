@@ -72,7 +72,9 @@ jobs:
         -DBOOST_LIBRARYDIR=${{ env.BOOST_ROOT }}/stage/lib
 
     - name: 🏗️ Build
-      run: cmake --build build --config Release
+      run: |
+        cd socketserver/
+        cmake --build build --config Release
 
     - name: 📦 Upload build artifacts
       uses: actions/upload-artifact@v4
