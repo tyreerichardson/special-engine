@@ -1,0 +1,81 @@
+name: Cross-Platform Boost WebSocket Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    env:
+      BOOST_VERSION: 1.78.0
+      BOOST_VERSION_UNDERSCORE: 1_78_0
+      BOOST_ROOT: ${{ github.workspace }}/boost
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v3
+
+    - name: 🧰 Install dependencies (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y curl build-essential cmake g++ unzip
+
+    - name: 🧰 Install dependencies (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install cmake boost
+
+    - name: 🧰 Install dependencies (Windows)
+      if: matrix.os == 'windows-latest'
+      run: choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
+
+    - name: 📦 Download Boost 1.78.0
+      if: matrix.os != 'macos-latest'
+      run: |
+        curl -L -o boost.zip https://boostorg.jfrog.io/artifactory/main/release/${{ env.BOOST_VERSION }}/source/boost_${{ env.BOOST_VERSION_UNDERSCORE }}.zip
+        unzip boost.zip -d boost
+        mv boost/boost_${{ env.BOOST_VERSION_UNDERSCORE }}/* boost/
+
+    - name: 🏗️ Bootstrap and Build Boost (Linux/macOS)
+      if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
+      working-directory: ${{ env.BOOST_ROOT }}
+      run: |
+        ./bootstrap.sh --with-libraries=system,thread,json
+        ./b2 install --prefix=${{ env.BOOST_ROOT }}/stage
+
+    - name: 🏗️ Bootstrap and Build Boost (Windows)
+      if: matrix.os == 'windows-latest'
+      working-directory: ${{ env.BOOST_ROOT }}
+      run: |
+        bootstrap.bat
+        .\b2 install --prefix=stage --with-system --with-thread --with-json
+
+    - name: 🧱 Configure with CMake
+      run: >
+        cmake -B build
+        -DCMAKE_BUILD_TYPE=Release
+        -DBOOST_ROOT=${{ env.BOOST_ROOT }}/stage
+        -DBOOST_INCLUDEDIR=${{ env.BOOST_ROOT }}/stage/include
+        -DBOOST_LIBRARYDIR=${{ env.BOOST_ROOT }}/stage/lib
+
+    - name: 🏗️ Build
+      run: cmake --build build --config Release
+
+    - name: 📦 Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: boost-websocket-${{ runner.os }}
+        path: |
+          build/**/*.exe
+          build/**/*.out
+          build/**/*.app
