@@ -51,6 +51,7 @@ jobs:
       working-directory: ${{ env.BOOST_ROOT }}
       run: |
         ls
+        mv boost_${{ env.BOOST_VERSION_UNDERSCORE }} boost
         ./boost/bootstrap.sh --with-libraries=system,thread,json
         ./boost/b2 install --prefix=${{ env.BOOST_ROOT }}/stage
 
