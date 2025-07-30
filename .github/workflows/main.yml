@@ -42,9 +42,9 @@ jobs:
     - name: 📦 Download Boost 1.78.0
       if: matrix.os != 'macos-latest'
       run: |
-        curl -L -o boost.zip https://boostorg.jfrog.io/artifactory/main/release/${{ env.BOOST_VERSION }}/source/boost_${{ env.BOOST_VERSION_UNDERSCORE }}.zip
-        unzip boost.zip -d boost
-        mv boost/boost_${{ env.BOOST_VERSION_UNDERSCORE }}/* boost/
+        curl -L -o boost_${{ env.BOOST_VERSION_UNDERSCORE }}.zip https://boostorg.jfrog.io/artifactory/main/release/${{ env.BOOST_VERSION }}/source/boost_${{ env.BOOST_VERSION_UNDERSCORE }}.zip
+        unzip boost_${{ env.BOOST_VERSION_UNDERSCORE }}.zip
+        mv boost_${{ env.BOOST_VERSION_UNDERSCORE }} boost
 
     - name: 🏗️ Bootstrap and Build Boost (Linux/macOS)
       if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
