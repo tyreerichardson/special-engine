@@ -67,9 +67,9 @@ jobs:
         cd socketserver;
         cmake -B build
         -DCMAKE_BUILD_TYPE=Release
-        -DBOOST_ROOT=${{ env.BOOST_ROOT }}/stage
-        -DBOOST_INCLUDEDIR=${{ env.BOOST_ROOT }}/stage/include
-        -DBOOST_LIBRARYDIR=${{ env.BOOST_ROOT }}/stage/lib
+        -DBOOST_ROOT=${{ env.BOOST_ROOT }}/boost_${{ env.BOOST_VERSION_UNDERSCORE }}/stage
+        -DBOOST_INCLUDEDIR=${{ env.BOOST_ROOT }}/boost_${{ env.BOOST_VERSION_UNDERSCORE }}/stage/include
+        -DBOOST_LIBRARYDIR=${{ env.BOOST_ROOT }}/boost_${{ env.BOOST_VERSION_UNDERSCORE }}/stage/lib
 
     - name: 🏗️ Build
       run: |
