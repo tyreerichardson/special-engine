@@ -53,14 +53,14 @@ jobs:
         mv boost_${{ env.BOOST_VERSION_UNDERSCORE }} boost;
         cd boost;
         ./bootstrap.sh --with-libraries=system,thread,json;
-        ./b2 install --prefix=${{ env.BOOST_ROOT }}/stage;
+        ./b2 install --prefix=${{ env.BOOST_ROOT }}/boost_${{ env.BOOST_VERSION_UNDERSCORE }}/stage;
 
     - name: 🏗️ Bootstrap and Build Boost (Windows)
       if: matrix.os == 'windows-latest'
       working-directory: ${{ env.BOOST_ROOT }}
       run: |
-        ./boost/bootstrap.bat
-        ./boost/b2 install --prefix=stage --with-system --with-thread --with-json
+        ./boost/boost_${{ env.BOOST_VERSION_UNDERSCORE }}/bootstrap.bat
+        ./boost/boost_${{ env.BOOST_VERSION_UNDERSCORE }}/b2 install --prefix=stage --with-system --with-thread --with-json
 
     - name: 🧱 Configure with CMake
       run: >
