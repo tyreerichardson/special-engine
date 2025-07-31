@@ -69,7 +69,29 @@ jobs:
         echo "BOOST_INCLUDEDIR=${{ github.workspace }}/boost" >> $GITHUB_ENV
         echo "BOOST_LIBRARYDIR=${{ github.workspace }}/boost/stage/lib" >> $GITHUB_ENV
       shell: bash
+      
+    - name: ✅ Verify Boost libraries exist
+      run: |
+        echo "Checking for Boost static libraries..."
+        BOOST_LIB_DIR="./boost/stage/lib"
+        MISSING_LIBS=()
 
+        for LIB in libboost_thread.a libboost_system.a libboost_json.a; do
+          if [ ! -f "${BOOST_LIB_DIR}/${LIB}" ]; then
+              echo "❌ Missing: ${LIB}"
+              MISSING_LIBS+=("${LIB}")
+          else
+              echo "✅ Found: ${LIB}"
+          fi
+        done
+
+        if [ ${#MISSING_LIBS[@]} -ne 0 ]; then
+            echo "❗ Some Boost libraries are missing: ${MISSING_LIBS[@]}"
+            exit 1
+        else
+            echo "✅ All required Boost libraries are present."
+        fi
+        
     - name: 🧱 Configure with CMake
       run: |
         mv boost boost_${{ env.BOOST_VERSION_UNDERSCORE }};
