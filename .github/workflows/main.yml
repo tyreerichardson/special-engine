@@ -53,6 +53,7 @@ jobs:
         mv boost_${{ env.BOOST_VERSION_UNDERSCORE }} boost;
         cd boost;
         ./bootstrap.sh --with-libraries=system,thread,json;
+        ls
         ./b2 install --prefix=${{ env.BOOST_ROOT }}/boost_${{ env.BOOST_VERSION_UNDERSCORE }}/stage;
 
     - name: 🏗️ Bootstrap and Build Boost (Windows)
