@@ -1,30 +1,37 @@
 cmake_minimum_required(VERSION 3.10)
 project(boost_websocket)
 
-# Use C++17 for Boost.Beast 
-# I have not started using boost beast since my device lacks the compatibility for now
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
-# Specify your toolchain and generator: use MinGW Makefiles when running cmake:
-#cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release ..
-
+# Paths to Boost (assumes you downloaded and built Boost in a 'boost/' folder)
 set(BOOST_ROOT "${CMAKE_SOURCE_DIR}/boost")
 set(BOOST_INCLUDEDIR "${BOOST_ROOT}")
 set(BOOST_LIBRARYDIR "${BOOST_ROOT}/stage/lib")
 
-find_package(Boost 1.78.0 REQUIRED COMPONENTS json thread system)
+# Force CMake to ignore system boost
+set(Boost_NO_SYSTEM_PATHS ON)
 
+# Find Boost components
+find_package(Boost 1.78.0 REQUIRED COMPONENTS thread system)
+
+message(STATUS "Boost include dir: ${Boost_INCLUDE_DIRS}")
+message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
+
+# Include Boost headers
 include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${BOOST_LIBRARYDIR})
 
-add_executable(boost_websocket_server server.cpp)
+# Add executable
+add_executable(boost_websocket_server socketserver/server.cpp)
 
+# Link Boost libraries
 target_link_libraries(boost_websocket_server
     ${Boost_LIBRARIES}
 )
 
-#### Previous CMAKE File below #####
 
+#### Previous CMAKE File below #####
+#cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release ..
 # Set Boost path manually if it's not installed system-wide
 # this location is needed to be on your device
 # set(Boost_DEBUG ON)
