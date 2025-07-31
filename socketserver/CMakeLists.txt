@@ -4,9 +4,9 @@ project(boost_websocket)
 set(CMAKE_CXX_STANDARD 17)
 
 # Paths to Boost (assumes you downloaded and built Boost in a 'boost/' folder)
-set(BOOST_ROOT "${CMAKE_SOURCE_DIR}/boost")
-set(BOOST_INCLUDEDIR "${BOOST_ROOT}")
-set(BOOST_LIBRARYDIR "${BOOST_ROOT}/stage/lib")
+set(BOOST_ROOT $ENV{BOOST_ROOT})
+set(BOOST_INCLUDEDIR $ENV{BOOST_INCLUDEDIR})
+set(BOOST_LIBRARYDIR $ENV{BOOST_LIBRARYDIR})
 
 # Force CMake to ignore system boost
 set(Boost_NO_SYSTEM_PATHS ON)
