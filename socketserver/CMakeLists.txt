@@ -21,7 +21,7 @@ set(Boost_USE_MULTITHREADED      ON)
 set(Boost_USE_STATIC_RUNTIME     OFF)
 
 # Find Boost components
-#find_package(Boost 1.78.0 REQUIRED COMPONENTS json thread system)
+find_package(Boost 1.78.0 REQUIRED COMPONENTS json thread system)
 
 #Add Boost headers
 include_directories(${Boost_INCLUDE_DIRS})
@@ -32,11 +32,11 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 add_executable(boost_websocket_server server.cpp message.hpp)
 
-link_directories(${Boost_LIBRARY_DIRS})
+link_directories(${BOOST_LIBRARYDIR})
 
 # Include Boost headers (These headers were manually added)
-target_include_directories(boost_websocket_server PRIVATE "${BOOST_INCLUDEDIR}")
-target_link_libraries(boost_websocket_server ${Boost_LIBRARIES})
+#target_include_directories(boost_websocket_server PRIVATE "${BOOST_INCLUDEDIR}")
+target_link_libraries(boost_websocket_server PRIVATE ${Boost_LIBRARIES})
 
 # For Windows/Mingw you might need to link extra libraries
 #if(MINGW)
