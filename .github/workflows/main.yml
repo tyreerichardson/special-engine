@@ -51,10 +51,10 @@ jobs:
       working-directory: ${{ env.BOOST_ROOT }}
       run: |
         mv boost_${{ env.BOOST_VERSION_UNDERSCORE }} boost;
-        cd boost;
-        ./bootstrap.sh --with-libraries=system,thread,json;
-        ls
-        ./b2 install --prefix=${{ env.BOOST_ROOT }}/boost/stage;
+        cd boost
+        ./bootstrap.sh --with-libraries=system,thread,filesystem
+        ./b2
+
 
     - name: 🏗️ Bootstrap and Build Boost (Windows)
       if: matrix.os == 'windows-latest'
