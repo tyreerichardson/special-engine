@@ -73,7 +73,9 @@ jobs:
     - name: ✅ Verify Boost libraries exist
       run: |
         echo "Checking for Boost static libraries..."
-        BOOST_LIB_DIR="./boost/stage/lib"
+        ls boost
+        ls boost/boost
+        BOOST_LIB_DIR="./boost/boost/stage/lib"
         MISSING_LIBS=()
 
         for LIB in libboost_thread.a libboost_system.a libboost_json.a; do
