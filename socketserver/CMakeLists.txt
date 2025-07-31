@@ -1,4 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
+cmake_policy(SET CMP0144 NEW) # Use *_ROOT environment variables
+cmake_policy(SET CMP0167 OLD) # Allow FindBoost
+
 project(boost_websocket)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -11,8 +14,9 @@ set(BOOST_LIBRARYDIR $ENV{BOOST_LIBRARYDIR})
 # Force CMake to ignore system boost
 set(Boost_NO_SYSTEM_PATHS ON)
 
-# Find Boost components
-find_package(Boost 1.78.0 REQUIRED COMPONENTS thread system)
+find_package(Boost 1.78.0 REQUIRED COMPONENTS thread system json
+  HINTS ${BOOST_ROOT} ${BOOST_INCLUDEDIR} ${BOOST_LIBRARYDIR})
+
 
 message(STATUS "Boost include dir: ${Boost_INCLUDE_DIRS}")
 message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
