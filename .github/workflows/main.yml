@@ -54,23 +54,23 @@ jobs:
         cd boost;
         ./bootstrap.sh --with-libraries=system,thread,json;
         ls
-        ./b2 install --prefix=${{ env.BOOST_ROOT }}/boost_${{ env.BOOST_VERSION_UNDERSCORE }}/stage;
+        ./b2 install --prefix=${{ env.BOOST_ROOT }}/boost/stage;
 
     - name: 🏗️ Bootstrap and Build Boost (Windows)
       if: matrix.os == 'windows-latest'
       working-directory: ${{ env.BOOST_ROOT }}
       run: |
-        ./boost/boost_${{ env.BOOST_VERSION_UNDERSCORE }}/bootstrap.bat
-        ./boost/boost_${{ env.BOOST_VERSION_UNDERSCORE }}/b2 install --prefix=stage --with-system --with-thread --with-json
+        ./boost/bootstrap.bat
+        ./boost/b2 install --prefix=stage --with-system --with-thread --with-json
 
     - name: 🧱 Configure with CMake
       run: >
         cd socketserver;
         cmake -B build
         -DCMAKE_BUILD_TYPE=Release
-        -DBOOST_ROOT=${{ env.BOOST_ROOT }}/boost_${{ env.BOOST_VERSION_UNDERSCORE }}/stage
-        -DBOOST_INCLUDEDIR=${{ env.BOOST_ROOT }}/boost_${{ env.BOOST_VERSION_UNDERSCORE }}/stage/include
-        -DBOOST_LIBRARYDIR=${{ env.BOOST_ROOT }}/boost_${{ env.BOOST_VERSION_UNDERSCORE }}/stage/lib
+        -DBOOST_ROOT=${{ env.BOOST_ROOT }}/boost/stage
+        -DBOOST_INCLUDEDIR=${{ env.BOOST_ROOT }}/boost/stage/include
+        -DBOOST_LIBRARYDIR=${{ env.BOOST_ROOT }}/boost/stage/lib
 
     - name: 🏗️ Build
       run: |
