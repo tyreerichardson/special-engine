@@ -98,7 +98,7 @@ jobs:
       run: |
         mv boost boost_${{ env.BOOST_VERSION_UNDERSCORE }};
         cd socketserver;  
-        cmake -DCMAKE_PREFIX_PATH=$BOOST_ROOT -DCMAKE_BUILD_TYPE=Release .
+        cmake -DCMAKE_PREFIX_PATH=$BOOST_ROOT/boost -DCMAKE_BUILD_TYPE=Release .
       env: 
         Boost_NO_SYSTEM_PATHS: ON
 
