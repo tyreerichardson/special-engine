@@ -21,7 +21,7 @@ set(Boost_USE_MULTITHREADED      ON)
 set(Boost_USE_STATIC_RUNTIME     OFF)
 
 # Find Boost components
-#find_package(Boost 1.78.0 REQUIRED COMPONENTS json thread system)
+find_package(Boost 1.78.0 REQUIRED COMPONENTS json thread system)
 
 #Add Boost headers
 include_directories(${Boost_INCLUDE_DIRS})
