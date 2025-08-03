@@ -112,6 +112,10 @@ jobs:
       with:
         name: boost-websocket-${{ runner.os }}
         path: |
+          ls
+          *.exe
+          *.out
+          *.app
           build/**/*.exe
           build/**/*.out
           build/**/*.app
