@@ -4,7 +4,7 @@ cmake_policy(SET CMP0167 OLD) # Allow FindBoost
 
 project(boost_websocket)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 11)
 
 # Paths to Boost (assumes you downloaded and built Boost in a 'boost/' folder)
 set(BOOST_ROOT $ENV{BOOST_ROOT})
@@ -13,10 +13,10 @@ set(BOOST_LIBRARYDIR $ENV{BOOST_LIBRARYDIR})
 
 # Force CMake to ignore system boost
 set(Boost_NO_SYSTEM_PATHS ON)
+# Make CMake use the old FindBoost mode
+set(Boost_NO_BOOST_CMAKE ON)
 
-find_package(Boost 1.79.0 REQUIRED COMPONENTS thread system json
-  HINTS ${BOOST_ROOT} ${BOOST_INCLUDEDIR} ${BOOST_LIBRARYDIR})
-
+find_package(Boost 1.79.0 REQUIRED COMPONENTS thread system json)
 
 message(STATUS "Boost include dir: ${Boost_INCLUDE_DIRS}")
 message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
