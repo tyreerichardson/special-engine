@@ -16,8 +16,8 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     env:
-      BOOST_VERSION: 1.78.0
-      BOOST_VERSION_UNDERSCORE: 1_78_0
+      BOOST_VERSION: 1.79.0
+      BOOST_VERSION_UNDERSCORE: 1_79_0
       BOOST_ROOT: ${{ github.workspace }}/boost
 
     steps:
@@ -39,7 +39,7 @@ jobs:
       if: matrix.os == 'windows-latest'
       run: choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
 
-    - name: 📦 Download Boost 1.78.0
+    - name: 📦 Download Boost 1.79.0
       if: matrix.os != 'macos-latest'
       run: |
         curl -L -o boost_${{ env.BOOST_VERSION_UNDERSCORE }}.zip https://archives.boost.io/release/${{ env.BOOST_VERSION }}/source/boost_${{ env.BOOST_VERSION_UNDERSCORE }}.zip
