@@ -26,7 +26,7 @@ include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${BOOST_LIBRARYDIR})
 
 # Add executable
-add_executable(boost_websocket_server socketserver/server.cpp)
+add_executable(boost_websocket_server server.cpp message.hpp)
 
 # Link Boost libraries
 target_link_libraries(boost_websocket_server
