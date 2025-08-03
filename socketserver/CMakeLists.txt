@@ -14,7 +14,7 @@ set(BOOST_LIBRARYDIR $ENV{BOOST_LIBRARYDIR})
 # Force CMake to ignore system boost
 set(Boost_NO_SYSTEM_PATHS ON)
 
-find_package(Boost 1.78.0 REQUIRED COMPONENTS thread system json
+find_package(Boost 1.79.0 REQUIRED COMPONENTS thread system json
   HINTS ${BOOST_ROOT} ${BOOST_INCLUDEDIR} ${BOOST_LIBRARYDIR})
 
 
