@@ -65,9 +65,9 @@ jobs:
 
     - name: 🛫 Export environment variables
       run: |
-        echo "BOOST_ROOT=${{ github.workspace }}/boost" >> $GITHUB_ENV
-        echo "BOOST_INCLUDEDIR=${{ github.workspace }}/boost" >> $GITHUB_ENV
-        echo "BOOST_LIBRARYDIR=${{ github.workspace }}/boost/stage/lib" >> $GITHUB_ENV
+        echo "BOOST_ROOT=${{ github.workspace }}/boost_1_79_0/boost" >> $GITHUB_ENV
+        echo "BOOST_INCLUDEDIR=${{ github.workspace }}/boost_1_79_0/boost" >> $GITHUB_ENV
+        echo "BOOST_LIBRARYDIR=${{ github.workspace }}/boost_1_79_0/boost/stage/lib" >> $GITHUB_ENV
       shell: bash
       
     - name: ✅ Verify Boost libraries exist
