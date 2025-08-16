@@ -93,6 +93,14 @@ jobs:
         else
             echo "✅ All required Boost libraries are present."
         fi
+
+    - name: Install Cassandra driver
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libuv1-dev
+        wget https://downloads.datastax.com/cpp-driver/ubuntu/cassandra-cpp-driver_2.16.0-1_amd64.deb
+        wget https://downloads.datastax.com/cpp-driver/ubuntu/cassandra-cpp-driver-dev_2.16.0-1_amd64.deb
+        sudo dpkg -i cassandra-cpp-driver_2.16.0-1_amd64.deb cassandra-cpp-driver-dev_2.16.0-1_amd64.deb
         
     - name: 🧱 Configure with CMake
       run: |
