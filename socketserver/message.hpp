@@ -1,7 +1,6 @@
 #ifndef MESSAGE_HPP
 #define MESSAGE_HPP
 
-#pragma once
 #include <string>
 #include <ctime>
 #include <sstream>

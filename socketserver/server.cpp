@@ -25,6 +25,7 @@
 #include <boost/json.hpp>
 
 #include "message.hpp"
+#include "cassconnect.hpp"
 
 using namespace std;
 using boost::asio::ip::tcp; // Use TCP socket classes from Boost Asio
@@ -50,6 +51,7 @@ void handle_client(std::shared_ptr<tcp::socket> socket) {
             boost::json::value jv = boost::json::parse(buffer);
             boost::json::object obj = jv.as_object();
 
+            // Gets the values from the json object and sets the variables
             std::string from = boost::json::value_to<std::string>(obj["message_from"]);
             std::string to = boost::json::value_to<std::string>(obj["message_to"]);
             std::string message_id = boost::json::value_to<std::string>(obj["message_id"]);
@@ -82,6 +84,8 @@ void handle_client(std::shared_ptr<tcp::socket> socket) {
 
 int main() {
     try {
+	    CassConnect db = CassConnect();
+
         // Set up the I/O context used for managing asynchronous operations
         boost::asio::io_context io_context;
 
