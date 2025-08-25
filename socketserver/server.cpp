@@ -85,7 +85,13 @@ void handle_client(std::shared_ptr<tcp::socket> socket) {
 int main() {
     try {
 	    CassConnect cass_db = CassConnect();
-        cass_db.load_messages("user123");
+        std::vector<Message> messages = cass_db.load_messages("user123");
+        for(auto message : messages){
+            //the message object returned from CassConnect
+            std::cout << "From: " << message.message_from << std::endl;
+	    std::cout << "  To: " << message.message_to << std::endl;
+	    std::cout << " msg: " << message.content << std::endl;
+        }
 
         // Set up the I/O context used for managing asynchronous operations
         boost::asio::io_context io_context;
