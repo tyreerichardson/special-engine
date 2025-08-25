@@ -84,7 +84,8 @@ void handle_client(std::shared_ptr<tcp::socket> socket) {
 
 int main() {
     try {
-	    CassConnect db = CassConnect();
+	    CassConnect cass_db = CassConnect();
+        cass_db.load_messages("user123");
 
         // Set up the I/O context used for managing asynchronous operations
         boost::asio::io_context io_context;
