@@ -42,7 +42,7 @@ public:
     }
 
     //loads chats
-    std::vector<Message> load_messages(std::string username) {
+    std::vector<Message> load_messages(const char* username) {
         std::string query = 
             "SELECT message_id , message_from, message_to, content FROM special_engine.messages "
             "WHERE message_from = ? ALLOW FILTERING";
@@ -54,7 +54,7 @@ public:
             cass_future_free(prep_future);
 
             statement = cass_prepared_bind(prepared);
-            cass_statement_bind_string(statement, 0, "user123");
+            cass_statement_bind_string(statement, 0, username);
 
             result_future = cass_session_execute(session, statement);
             check_future(result_future, "Query execution failed");
@@ -62,7 +62,7 @@ public:
             const CassResult* result = cass_future_get_result(result_future);
             CassIterator* rows = cass_iterator_from_result(result);
 
-            std::cout << "=== Messages where " << "message_from" << " = " << "user123" << " ===" << std::endl;
+            std::cout << "=== Messages where " << "message_from" << " = " << username << " ===" << std::endl;
             std::vector<Message> messages;
             while(cass_iterator_next(rows)) {
                 const CassRow* row = cass_iterator_get_row(rows);
