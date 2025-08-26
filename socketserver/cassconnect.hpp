@@ -8,7 +8,6 @@
 #include "message.hpp"
 
 
-
 class CassConnect {
 private: 
     CassCluster* cluster = cass_cluster_new();
@@ -20,6 +19,7 @@ private:
 
     const char* server_host = "127.0.0.1";
 
+    // Helper: check Cassandra future results
     void check_future(CassFuture* future, const std::string& errorMsg) {
         CassError rc = cass_future_error_code(future);
         if (rc != CASS_OK) {
@@ -29,6 +29,15 @@ private:
             std::cerr << errorMsg << ": " << std::string(msg, msg_length) << std::endl;
             exit(1);
         }
+    }
+
+    // Helper: run simple query (no params)
+    void execute_query(CassSession* session, const std::string& query) {
+        CassStatement* statement = cass_statement_new(query.c_str(), 0);
+        CassFuture* future = cass_session_execute(session, statement);
+        check_future(future, "Query failed: " + query);
+        cass_future_free(future);
+        cass_statement_free(statement);
     }
 
 public:
@@ -80,9 +89,9 @@ public:
                 message.message_to = std::string(to, to_len);
                 message.content = std::string(body, body_len);
                 messages.push_back(message);
-                std::cout << "From: " << std::string(from, from_len)
-                          << "\nTo: " << std::string(to, to_len)
-                          << "\nBody: " << std::string(body, body_len) << std::endl;
+                // std::cout << "From: " << std::string(from, from_len)
+                //           << "\nTo: " << std::string(to, to_len)
+                //           << "\nBody: " << std::string(body, body_len) << std::endl;
 
             }
 
@@ -93,7 +102,7 @@ public:
             cass_prepared_free(prepared);
 
             // Cleanup
-            cass_cleanup();
+            //cass_cleanup();
             
             return messages;
     }
@@ -106,6 +115,22 @@ public:
         
         Message message;
         return message;
+    }
+
+    void save_message(Message message) {
+        std::string insert_query =             
+            "INSERT INTO special_engine.messages (message_id , message_from, message_to, content, created_at) "
+            "VALUES (uuid(), '" + message.message_from + "', '" + message.message_to + "', '" + message.content + "', toTimeStamp(now()));";
+
+        execute_query(session, insert_query);
+    }
+
+    void save_message(std::string from, std::string to, std::string content) {
+        std::string insert_query =             
+            "INSERT INTO special_engine.messages (message_id , message_from, message_to, content, created_at) "
+            "VALUES (uuid(), '" + from + "', '" + to + "', '" + content + "', toTimeStamp(now()));";
+
+        execute_query(session, insert_query);
     }
     
     //Cleans up Cassandra connections
