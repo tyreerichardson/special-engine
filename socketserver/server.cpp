@@ -25,11 +25,13 @@
 #include <boost/json.hpp>
 
 #include "message.hpp"
+#include "cassconnect.hpp"
 
 using namespace std;
 using boost::asio::ip::tcp; // Use TCP socket classes from Boost Asio
 std::map<std::string, std::shared_ptr<tcp::socket>> clients;
 boost::mutex clients_mutex;
+CassConnect cass_db;
 
 
 void handle_client(std::shared_ptr<tcp::socket> socket) {
@@ -50,9 +52,13 @@ void handle_client(std::shared_ptr<tcp::socket> socket) {
             boost::json::value jv = boost::json::parse(buffer);
             boost::json::object obj = jv.as_object();
 
+            // Gets the values from the json object and sets the variables
             std::string from = boost::json::value_to<std::string>(obj["message_from"]);
             std::string to = boost::json::value_to<std::string>(obj["message_to"]);
             std::string message_id = boost::json::value_to<std::string>(obj["message_id"]);
+            std::string content = boost::json::value_to<std::string>(obj["content"]);
+
+            cass_db.save_message(from, to, content);
 
             // Register sender if not already
             {
@@ -82,6 +88,15 @@ void handle_client(std::shared_ptr<tcp::socket> socket) {
 
 int main() {
     try {
+	    cass_db = CassConnect();
+        std::vector<Message> messages = cass_db.load_messages("user123");
+        for(auto message : messages){
+            //the message object returned from CassConnect
+            std::cout << "From: " << message.message_from << std::endl;
+	        std::cout << "  To: " << message.message_to << std::endl;
+	        std::cout << " msg: " << message.content << std::endl;
+        }
+
         // Set up the I/O context used for managing asynchronous operations
         boost::asio::io_context io_context;
 
