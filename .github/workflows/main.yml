@@ -99,13 +99,13 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libuv1-dev
         wget http://archive.ubuntu.com/ubuntu/pool/main/g/glibc/multiarch-support_2.27-3ubuntu1_amd64.deb
-        wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl3t64_3.0.13-0ubuntu3.5_amd64.deb
-        wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl-dev_3.0.13-0ubuntu3.5_amd64.deb
+        wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1-1ubuntu2.1~18.04.23_amd64.deb
+        wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl-dev_1.1.1-1ubuntu2.1~18.04.23_amd64.deb
         wget https://downloads.datastax.com/cpp-driver/ubuntu/18.04/cassandra/v2.16.0/cassandra-cpp-driver_2.16.0-1_amd64.deb
         wget https://downloads.datastax.com/cpp-driver/ubuntu/18.04/cassandra/v2.16.0/cassandra-cpp-driver-dev_2.16.0-1_amd64.deb	
         sudo dpkg -i multiarch-support_2.27-3ubuntu1_amd64.deb 
-        sudo dpkg -i libssl3t64_3.0.13-0ubuntu3.5_amd64.deb
-        sudo dpkg -i libssl-dev_3.0.13-0ubuntu3.5_amd64.deb
+        sudo dpkg -i libssl1.1_1.1.1-1ubuntu2.1~18.04.23_amd64.deb
+        sudo dpkg -i libssl-dev_1.1.1-1ubuntu2.1~18.04.23_amd64.deb
         sudo dpkg -i cassandra-cpp-driver_2.16.0-1_amd64.deb 
         sudo dpkg -i cassandra-cpp-driver-dev_2.16.0-1_amd64.deb
         
