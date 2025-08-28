@@ -98,9 +98,10 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y libuv1-dev
+        wget http://archive.ubuntu.com/ubuntu/pool/main/g/glibc/multiarch-support_2.27-3ubuntu1.5_amd64.deb
         wget https://downloads.datastax.com/cpp-driver/ubuntu/18.04/cassandra/v2.16.0/cassandra-cpp-driver_2.16.0-1_amd64.deb
         wget https://downloads.datastax.com/cpp-driver/ubuntu/18.04/cassandra/v2.16.0/cassandra-cpp-driver-dev_2.16.0-1_amd64.deb	
-        sudo dpkg -i cassandra-cpp-driver_2.16.0-1_amd64.deb cassandra-cpp-driver-dev_2.16.0-1_amd64.deb
+        sudo dpkg -i multiarch-support_2.27-3ubuntu1.5_amd64.deb cassandra-cpp-driver_2.16.0-1_amd64.deb cassandra-cpp-driver-dev_2.16.0-1_amd64.deb
         
     - name: 🧱 Configure with CMake
       run: |
