@@ -27,7 +27,7 @@ include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${BOOST_LIBRARYDIR})
 
 # Add executable
-add_executable(boost_websocket server.cpp message.hpp cassconnect.hpp)
+add_executable(boost_websocket server.cpp message.hpp user.hpp cassconnect.hpp)
 
 # Find Casssandra header
 find_path(CASSANDRA_INCLUDE_DIR cassandra.h

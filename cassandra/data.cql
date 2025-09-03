@@ -3,11 +3,11 @@ CREATE KEYSPACE IF NOT EXISTS special_engine WITH REPLICATION = { 'class' : 'Sim
 
 -- Create a table for the messages (one-to-one)
 CREATE TABLE IF NOT EXISTS special_engine.messages (
-message_id uuid PRIMARY KEY,
-message_from text,
-message_to text,
-content text,
-created_at timestamp
+    message_id uuid PRIMARY KEY,
+    message_from text,
+    message_to text,
+    content text,
+    created_at timestamp
 );
 
 -- Insert some data
@@ -19,3 +19,10 @@ INSERT INTO special_engine.messages
 (message_id, message_from, message_to, content, created_at)
 VALUES (uuid(), 'alice', 'tyree', 'Hey Tyree, How are you?', toTimeStamp(now()));
 
+-- Create a table for the users
+CREATE TABLE IF NOT EXISTS special_engine.users (
+    user_id uuid PRIMARY KEY,
+    username text,
+    created_at timestamp,
+    is_active boolean
+);
