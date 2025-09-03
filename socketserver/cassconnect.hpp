@@ -5,8 +5,9 @@
 #include <string>
 #include <iostream>
 #include <vector>
-#include "message.hpp"
 
+#include "message.hpp"
+#include "user.hpp"
 
 class CassConnect {
 private: 
@@ -53,7 +54,7 @@ public:
     //loads chats
     std::vector<Message> load_messages(const char* username) {
         std::string query = 
-            "SELECT message_id , message_from, message_to, content FROM special_engine.messages "
+            "SELECT message_id, message_from, message_to, content FROM special_engine.messages "
             "WHERE message_from = ? ALLOW FILTERING";
 
             const CassPrepared* prepared = nullptr;
@@ -115,6 +116,54 @@ public:
         
         Message message;
         return message;
+    }
+
+    void create_user(std::string username) {
+        std::string insert_query = 
+        "INSERT INTO special_engine.users(user_id, username, created_at, is_active) "
+        "VALUES (uuid(), '" + username + "', toTimeStamp(now()), false)";
+        execute_query(session, insert_query);
+    }
+
+    bool user_exists(const std::string& user) {
+        bool found = false;
+        const char* query =
+            "SELECT COUNT(1) FROM special_engine.users WHERE username = ? ALLOW FILTERING;";
+
+        CassStatement* statement = cass_statement_new(query, 1);
+        cass_statement_bind_string(statement, 0, user.c_str());
+
+        CassFuture* result_future = cass_session_execute(session, statement);
+        cass_statement_free(statement);
+
+        if (cass_future_error_code(result_future) == CASS_OK) {
+            const CassResult* result = cass_future_get_result(result_future);
+            CassIterator* rows = cass_iterator_from_result(result);
+
+            if (cass_iterator_next(rows)) {
+                const CassRow* row = cass_iterator_get_row(rows);
+                cass_int64_t count = 0;
+
+                const CassValue* value = cass_row_get_column(row, 0);
+                cass_value_get_int64(value, &count);
+                found = (count>0) ? true : false;
+
+                std::cout << "Message count for user '" << user << "': " << count << "\n";
+            } else {
+                std::cout << "No results found for user '" << user << "'.\n";
+            }
+
+            cass_iterator_free(rows);
+            cass_result_free(result);
+        } else {
+            const char* message;
+            size_t message_length;
+            cass_future_error_message(result_future, &message, &message_length);
+            std::cerr << "Query failed: " << std::string(message, message_length) << "\n";
+        }
+
+        cass_future_free(result_future);
+        return found;
     }
 
     void save_message(Message message) {

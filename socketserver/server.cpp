@@ -58,6 +58,13 @@ void handle_client(std::shared_ptr<tcp::socket> socket) {
             std::string message_id = boost::json::value_to<std::string>(obj["message_id"]);
             std::string content = boost::json::value_to<std::string>(obj["content"]);
 
+            //checks if user exists if they don't add them to the user table
+            
+            //TODO: this will change once logging is added
+            if(!cass_db.user_exists(from.c_str())){
+                std::cout << "Adding User to the table" << std::endl;
+                cass_db.create_user(from.c_str());
+            }
             cass_db.save_message(from, to, content);
 
             // Register sender if not already
@@ -88,7 +95,7 @@ void handle_client(std::shared_ptr<tcp::socket> socket) {
 
 int main() {
     try {
-	    cass_db = CassConnect();
+	    cass_db;
         std::vector<Message> messages = cass_db.load_messages("user123");
         for(auto message : messages){
             //the message object returned from CassConnect
