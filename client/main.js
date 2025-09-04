@@ -37,6 +37,10 @@ client.on('close', function() {
 /**
  * ** Sample send JSON message **
  * 
+ * This is done before messages can be sent
+ * {"username":"tyree"}
+ * 
+ * this is the message format
  * {"message_id":"2", "message_from":"tyree", "message_to":"alice", "content":"Hi back!", "created_at":"..."}
  *
  */

@@ -33,9 +33,52 @@ std::map<std::string, std::shared_ptr<tcp::socket>> clients;
 boost::mutex clients_mutex;
 CassConnect cass_db;
 
+std::string log_in(std::shared_ptr<tcp::socket> socket) {
+    std::string username = "";
+    try {
+        std::string buffer;
+
+        boost::asio::streambuf read_buf;
+        boost::system::error_code error;
+
+        boost::asio::read_until(*socket, read_buf, '\n', error);
+        if (error == boost::asio::error::eof) throw;
+        else if (error) throw boost::system::system_error(error);
+
+        std::istream stream(&read_buf);
+        std::getline(stream, buffer); // Get full message line
+
+        boost::json::value jv = boost::json::parse(buffer);
+        boost::json::object obj = jv.as_object();
+
+        username = boost::json::value_to<std::string>(obj["username"]);
+
+        //TODO: this will change once logging is added
+        if(!cass_db.user_exists(username.c_str())){
+            std::cout << "Adding User to the table" << std::endl;
+            cass_db.create_user(username.c_str());
+        } else 
+            std::cout << "Thank you for coming back " << username.c_str() << std::endl;
+
+        // Register sender if not already
+        {
+            boost::mutex::scoped_lock lock(clients_mutex);
+            if (clients.find(username) == clients.end()) {
+                clients[username] = socket;
+            }
+        }
+        
+    } catch (std::exception& e) {
+        std::cerr << "Exception: " << e.what() << std::endl;
+    }
+    return username;
+}
 
 void handle_client(std::shared_ptr<tcp::socket> socket) {
+    std::string username = "";
     try {
+        username = log_in(socket);
+
         std::string buffer;
 
         while (true) {
@@ -58,33 +101,31 @@ void handle_client(std::shared_ptr<tcp::socket> socket) {
             std::string message_id = boost::json::value_to<std::string>(obj["message_id"]);
             std::string content = boost::json::value_to<std::string>(obj["content"]);
 
-            //checks if user exists if they don't add them to the user table
-            
-            //TODO: this will change once logging is added
-            if(!cass_db.user_exists(from.c_str())){
-                std::cout << "Adding User to the table" << std::endl;
-                cass_db.create_user(from.c_str());
-            }
-            cass_db.save_message(from, to, content);
+            if(username!=from) {
+                std::cout << username << " tried sending a message with the username: " << from << std::endl;
+            } else { //SENDS MESSAGE WITH FAKE_AUTH
+                //checks if user exists if they don't add them to the user table
+                cass_db.save_message(from, to, content);
 
-            // Register sender if not already
-            {
-                boost::mutex::scoped_lock lock(clients_mutex);
-                if (clients.find(from) == clients.end()) {
-                    clients[from] = socket;
+                // Register sender if not already
+                {
+                    boost::mutex::scoped_lock lock(clients_mutex);
+                    if (clients.find(from) == clients.end()) {
+                        clients[from] = socket;
+                    }
                 }
-            }
 
-            std::string serialized_msg = boost::json::serialize(obj) + "\n";
+                std::string serialized_msg = boost::json::serialize(obj) + "\n";
 
-            // Send to recipient
-            {
-                boost::mutex::scoped_lock lock(clients_mutex);
-                if (clients.find(to) != clients.end()) {
-                    boost::asio::write(*clients[to], boost::asio::buffer(serialized_msg));
-                } else {
-                    std::string error_msg = "{\"error\":\"User " + to + " not connected\"}\n";
-                    boost::asio::write(*socket, boost::asio::buffer(error_msg));
+                // Send to recipient
+                {
+                    boost::mutex::scoped_lock lock(clients_mutex);
+                    if (clients.find(to) != clients.end()) {
+                        boost::asio::write(*clients[to], boost::asio::buffer(serialized_msg));
+                    } else {
+                        std::string error_msg = "{\"error\":\"User " + to + " not connected\"}\n";
+                        boost::asio::write(*socket, boost::asio::buffer(error_msg));
+                    }
                 }
             }
         }
@@ -95,7 +136,6 @@ void handle_client(std::shared_ptr<tcp::socket> socket) {
 
 int main() {
     try {
-	    cass_db;
         std::vector<Message> messages = cass_db.load_messages("user123");
         for(auto message : messages){
             //the message object returned from CassConnect
