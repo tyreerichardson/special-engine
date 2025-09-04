@@ -147,12 +147,8 @@ public:
                 const CassValue* value = cass_row_get_column(row, 0);
                 cass_value_get_int64(value, &count);
                 found = (count>0) ? true : false;
-
-                std::cout << "Message count for user '" << user << "': " << count << "\n";
-            } else {
-                std::cout << "No results found for user '" << user << "'.\n";
             }
-
+            
             cass_iterator_free(rows);
             cass_result_free(result);
         } else {
