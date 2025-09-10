@@ -55,7 +55,7 @@ public:
     std::vector<Message> load_messages(const char* username) {
         std::string query = 
             "SELECT message_id, message_from, message_to, content FROM special_engine.messages "
-            "WHERE message_from = ? ALLOW FILTERING";
+            "WHERE message_from = ? AND created_day > current_date() - 30d ALLOW FILTERING";
 
             const CassPrepared* prepared = nullptr;
             prep_future = cass_session_prepare(session, query.c_str());
@@ -164,16 +164,16 @@ public:
 
     void save_message(Message message) {
         std::string insert_query =             
-            "INSERT INTO special_engine.messages (message_id , message_from, message_to, content, created_at) "
-            "VALUES (uuid(), '" + message.message_from + "', '" + message.message_to + "', '" + message.content + "', toTimeStamp(now()));";
+            "INSERT INTO special_engine.messages (message_id , message_from, message_to, content, created_day, created_at) "
+            "VALUES (uuid(), '" + message.message_from + "', '" + message.message_to + "', '" + message.content + "', current_date(), toTimeStamp(now()));";
 
         execute_query(session, insert_query);
     }
 
     void save_message(std::string from, std::string to, std::string content) {
         std::string insert_query =             
-            "INSERT INTO special_engine.messages (message_id , message_from, message_to, content, created_at) "
-            "VALUES (uuid(), '" + from + "', '" + to + "', '" + content + "', toTimeStamp(now()));";
+            "INSERT INTO special_engine.messages (message_id , message_from, message_to, content, created_day, created_at) "
+            "VALUES (uuid(), '" + from + "', '" + to + "', '" + content + "', current_date(), toTimeStamp(now()));";
 
         execute_query(session, insert_query);
     }
