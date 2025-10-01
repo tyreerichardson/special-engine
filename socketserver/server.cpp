@@ -35,22 +35,12 @@ std::map<std::string, std::shared_ptr<boost::beast::websocket::stream<tcp::socke
 boost::mutex clients_mutex;
 CassConnect cass_db;
 
-std::string log_in(std::shared_ptr<tcp::socket> socket,
-    std::shared_ptr<boost::beast::websocket::stream<tcp::socket>>& ws) {
+std::string log_in(std::shared_ptr<boost::beast::websocket::stream<tcp::socket>>& ws) {
     std::string username = "";
     try {
-        //std::string buffer;
         boost::beast::flat_buffer buffer;
         ws->read(buffer);
-        //boost::asio::streambuf read_buf;
-        //boost::system::error_code error;
 
-        //boost::asio::read_until(*socket, read_buf, '\n', error);
-        //if (error == boost::asio::error::eof) throw;
-        //else if (error) throw boost::system::system_error(error);
-
-        //std::istream stream(&read_buf);
-        //std::getline(stream, buffer); // Get full message line
         std::string msg = boost::beast::buffers_to_string(buffer.data());
         std::cout << "Received: " << msg << std::endl;
 
@@ -87,7 +77,7 @@ void handle_client(std::shared_ptr<tcp::socket> socket) {
         // Perform WebSocket handshake
         ws->accept();
 
-        std::string username = log_in(socket, ws);
+        std::string username = log_in(ws);
 
         for (;;) {
             boost::beast::flat_buffer buffer;
