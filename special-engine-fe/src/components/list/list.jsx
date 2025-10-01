@@ -1,4 +1,4 @@
-import Chatlist from "./chatList/Chatlist"
+import Chatlist from "./chatList/chatList"
 import "./list.css"
 import Userinfo from "./userInfo/Userinfo"
 
