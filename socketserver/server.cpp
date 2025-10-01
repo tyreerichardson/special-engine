@@ -14,7 +14,9 @@
 #include <iterator>     // (Unused) Could be used for algorithms
 #include <algorithm>    // (Unused) For utility algorithms
 
-// Boost includes for threading and networking
+// Boost includes for threading and 
+#include <boost/beast/core.hpp>                     // Buffers for store incoming/outgoing data safely
+#include <boost/beast/websocket.hpp>                // Raw TCP connection insto a full WebSokcet stream(HandShake Upgraded)
 #include <boost/thread.hpp>                         // Boost threads for handling clients
 #include <boost/thread/mutex.hpp>                   // (Unused here) Could be used for shared resource protection
 #include <boost/bind/bind.hpp>                      // For binding function arguments
@@ -29,26 +31,20 @@
 
 using namespace std;
 using boost::asio::ip::tcp; // Use TCP socket classes from Boost Asio
-std::map<std::string, std::shared_ptr<tcp::socket>> clients;
+std::map<std::string, std::shared_ptr<boost::beast::websocket::stream<tcp::socket>>> clients;
 boost::mutex clients_mutex;
 CassConnect cass_db;
 
-std::string log_in(std::shared_ptr<tcp::socket> socket) {
+std::string log_in(std::shared_ptr<boost::beast::websocket::stream<tcp::socket>>& ws) {
     std::string username = "";
     try {
-        std::string buffer;
+        boost::beast::flat_buffer buffer;
+        ws->read(buffer);
 
-        boost::asio::streambuf read_buf;
-        boost::system::error_code error;
+        std::string msg = boost::beast::buffers_to_string(buffer.data());
+        std::cout << "Received: " << msg << std::endl;
 
-        boost::asio::read_until(*socket, read_buf, '\n', error);
-        if (error == boost::asio::error::eof) throw;
-        else if (error) throw boost::system::system_error(error);
-
-        std::istream stream(&read_buf);
-        std::getline(stream, buffer); // Get full message line
-
-        boost::json::value jv = boost::json::parse(buffer);
+        boost::json::value jv = boost::json::parse(msg);
         boost::json::object obj = jv.as_object();
 
         username = boost::json::value_to<std::string>(obj["username"]);
@@ -64,7 +60,7 @@ std::string log_in(std::shared_ptr<tcp::socket> socket) {
         {
             boost::mutex::scoped_lock lock(clients_mutex);
             if (clients.find(username) == clients.end()) {
-                clients[username] = socket;
+                clients[username] = ws;
             }
         }
         
@@ -75,43 +71,43 @@ std::string log_in(std::shared_ptr<tcp::socket> socket) {
 }
 
 void handle_client(std::shared_ptr<tcp::socket> socket) {
-    std::string username = "";
     try {
-        username = log_in(socket);
+        auto ws = std::make_shared<boost::beast::websocket::stream<tcp::socket>>(std::move(*socket));
 
-        std::string buffer;
+        // Perform WebSocket handshake
+        ws->accept();
 
-        while (true) {
-            boost::asio::streambuf read_buf;
-            boost::system::error_code error;
+        std::string username = log_in(ws);
 
-            boost::asio::read_until(*socket, read_buf, '\n', error);
-            if (error == boost::asio::error::eof) break;
-            else if (error) throw boost::system::system_error(error);
+        for (;;) {
+            boost::beast::flat_buffer buffer;
+            ws->read(buffer);
 
-            std::istream stream(&read_buf);
-            std::getline(stream, buffer); // Get full message line
+            std::string msg = boost::beast::buffers_to_string(buffer.data());
+            buffer.consume(buffer.size());
+            
+            std::cout << "Received: " << msg << std::endl;
 
-            boost::json::value jv = boost::json::parse(buffer);
+            // Parse JSON message
+            boost::json::value jv = boost::json::parse(msg);
             boost::json::object obj = jv.as_object();
 
-            // Gets the values from the json object and sets the variables
-            std::string from = boost::json::value_to<std::string>(obj["message_from"]);
-            std::string to = boost::json::value_to<std::string>(obj["message_to"]);
-            std::string message_id = boost::json::value_to<std::string>(obj["message_id"]);
+            std::string from    = boost::json::value_to<std::string>(obj["message_from"]);
+            std::string to      = boost::json::value_to<std::string>(obj["message_to"]);
             std::string content = boost::json::value_to<std::string>(obj["content"]);
 
-            if(username!=from) {
-                std::cout << username << " tried sending a message with the username: " << from << std::endl;
+            if(username!=from){
+                std::cout << username << " tried sending a message with the username: " << from  << std::endl;
             } else { //SENDS MESSAGE WITH FAKE_AUTH
-                //checks if user exists if they don't add them to the user table
+
+                // Save to Cassandra
                 cass_db.save_message(from, to, content);
 
                 // Register sender if not already
                 {
                     boost::mutex::scoped_lock lock(clients_mutex);
-                    if (clients.find(from) == clients.end()) {
-                        clients[from] = socket;
+                    if(clients.find(from) == clients.end()){
+                        clients[from] = ws;
                     }
                 }
 
@@ -121,16 +117,19 @@ void handle_client(std::shared_ptr<tcp::socket> socket) {
                 {
                     boost::mutex::scoped_lock lock(clients_mutex);
                     if (clients.find(to) != clients.end()) {
-                        boost::asio::write(*clients[to], boost::asio::buffer(serialized_msg));
+                        clients[to]->text(true);
+                        clients[to]->write(boost::asio::buffer(msg));
                     } else {
                         std::string error_msg = "{\"error\":\"User " + to + " not connected\"}\n";
-                        boost::asio::write(*socket, boost::asio::buffer(error_msg));
+                        ws->text(true);
+                        ws->write(boost::asio::buffer(error_msg));
                     }
                 }
-            }
+            }           
         }
+
     } catch (std::exception& e) {
-        std::cerr << "Exception: " << e.what() << std::endl;
+        std::cerr << "Exception in client: " << e.what() << std::endl;
     }
 }
 
