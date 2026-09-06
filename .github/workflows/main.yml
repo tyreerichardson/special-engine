@@ -2,16 +2,22 @@ name: Cross-Platform Boost WebSocket Build
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   build:
+    name: Build on ${{ matrix.os }}
 
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os:
+          - ubuntu-latest
+          - macos-latest
 
     runs-on: ${{ matrix.os }}
 
@@ -19,119 +25,166 @@ jobs:
       BOOST_VERSION: 1.79.0
       BOOST_VERSION_UNDERSCORE: 1_79_0
       BOOST_ROOT: ${{ github.workspace }}/boost
+      BOOST_INCLUDEDIR: ${{ github.workspace }}/boost
+      BOOST_LIBRARYDIR: ${{ github.workspace }}/boost/stage/lib
 
     steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: 🧰 Install dependencies (Linux)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        sudo apt-get update
-        sudo apt install unzip
+      - name: Install build dependencies on Linux
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            curl \
+            unzip \
+            libuv1-dev
 
-    - name: 🧰 Install dependencies (macOS)
-      if: matrix.os == 'macos-latest'
-      run: |
-        brew install cmake boost
+      - name: Install build dependencies on macOS
+        if: runner.os == 'macOS'
+        run: |
+          brew update
+          brew install cmake curl cassandra-cpp-driver
 
-    - name: 🧰 Install dependencies (Windows)
-      if: matrix.os == 'windows-latest'
-      run: choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
+          echo "CASSANDRA_PREFIX=$(brew --prefix cassandra-cpp-driver)" >> "$GITHUB_ENV"
+          echo "OPENSSL_ROOT_DIR=$(brew --prefix openssl@3)" >> "$GITHUB_ENV"
+          echo "LIBUV_ROOT=$(brew --prefix libuv)" >> "$GITHUB_ENV"
 
-    - name: 📦 Download Boost 1.79.0
-      if: matrix.os != 'macos-latest'
-      run: |
-        curl -L -o boost_${{ env.BOOST_VERSION_UNDERSCORE }}.zip https://archives.boost.io/release/${{ env.BOOST_VERSION }}/source/boost_${{ env.BOOST_VERSION_UNDERSCORE }}.zip
-        unzip boost_${{ env.BOOST_VERSION_UNDERSCORE }}.zip
-        mv boost_${{ env.BOOST_VERSION_UNDERSCORE }} boost
+      - name: Download Boost 1.79.0
+        shell: bash
+        run: |
+          curl \
+            --fail \
+            --location \
+            --retry 3 \
+            --output "boost_${BOOST_VERSION_UNDERSCORE}.zip" \
+            "https://archives.boost.io/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION_UNDERSCORE}.zip"
 
-    - name: 🏗️ Bootstrap and Build Boost (Linux/macOS)
-      if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
-      working-directory: ${{ env.BOOST_ROOT }}
-      run: |
-        mv boost_${{ env.BOOST_VERSION_UNDERSCORE }} boost;
-        cd boost
-        ./bootstrap.sh --with-libraries=system,thread,json
-        ./b2 link=static variant=release threading=multi runtime-link=static -j 2
+          unzip -q "boost_${BOOST_VERSION_UNDERSCORE}.zip"
+          mv "boost_${BOOST_VERSION_UNDERSCORE}" "${BOOST_ROOT}"
 
-    - name: 🏗️ Bootstrap and Build Boost (Windows)
-      if: matrix.os == 'windows-latest'
-      working-directory: ${{ env.BOOST_ROOT }}
-      run: |
-        ./boost/bootstrap.bat
-        ./boost/b2 install --prefix=stage --with-system --with-thread --with-json
-      shell: bash
+      - name: Bootstrap and build Boost
+        working-directory: ${{ env.BOOST_ROOT }}
+        shell: bash
+        run: |
+          ./bootstrap.sh --with-libraries=system,thread,json
 
-    - name: 🛫 Export environment variables
-      run: |
-        echo "BOOST_ROOT=${{ github.workspace }}/boost_1_79_0/boost" >> $GITHUB_ENV
-        echo "BOOST_INCLUDEDIR=${{ github.workspace }}/boost_1_79_0/boost" >> $GITHUB_ENV
-        echo "BOOST_LIBRARYDIR=${{ github.workspace }}/boost_1_79_0/boost/stage/lib" >> $GITHUB_ENV
-      shell: bash
-      
-    - name: ✅ Verify Boost libraries exist
-      run: |
-        echo "Checking for Boost static libraries..."
-        ls boost
-        ls boost/boost
-        BOOST_LIB_DIR="./boost/boost/stage/lib"
-        MISSING_LIBS=()
+          ./b2 \
+            --with-system \
+            --with-thread \
+            --with-json \
+            link=static \
+            variant=release \
+            threading=multi \
+            -j 2
 
-        for LIB in libboost_thread.a libboost_system.a libboost_json.a; do
-          if [ ! -f "${BOOST_LIB_DIR}/${LIB}" ]; then
-              echo "❌ Missing: ${LIB}"
-              MISSING_LIBS+=("${LIB}")
-          else
-              echo "✅ Found: ${LIB}"
-          fi
-        done
+      - name: Verify Boost libraries
+        shell: bash
+        run: |
+          echo "Boost library directory: ${BOOST_LIBRARYDIR}"
+          ls -la "${BOOST_LIBRARYDIR}"
 
-        if [ ${#MISSING_LIBS[@]} -ne 0 ]; then
-            echo "❗ Some Boost libraries are missing: ${MISSING_LIBS[@]}"
+          missing_libraries=0
+
+          for library in \
+            libboost_system.a \
+            libboost_thread.a \
+            libboost_json.a
+          do
+            if [ ! -f "${BOOST_LIBRARYDIR}/${library}" ]; then
+              echo "Missing Boost library: ${library}"
+              missing_libraries=1
+            else
+              echo "Found Boost library: ${library}"
+            fi
+          done
+
+          if [ "${missing_libraries}" -ne 0 ]; then
             exit 1
-        else
-            echo "✅ All required Boost libraries are present."
-        fi
+          fi
 
-    - name: Install Cassandra driver
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libuv1-dev
-        wget http://archive.ubuntu.com/ubuntu/pool/main/g/glibc/multiarch-support_2.27-3ubuntu1_amd64.deb
-        wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1-1ubuntu2.1~18.04.23_amd64.deb
-        wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl-dev_1.1.1-1ubuntu2.1~18.04.23_amd64.deb
-        wget https://downloads.datastax.com/cpp-driver/ubuntu/18.04/cassandra/v2.16.0/cassandra-cpp-driver_2.16.0-1_amd64.deb
-        wget https://downloads.datastax.com/cpp-driver/ubuntu/18.04/cassandra/v2.16.0/cassandra-cpp-driver-dev_2.16.0-1_amd64.deb	
-        sudo dpkg -i multiarch-support_2.27-3ubuntu1_amd64.deb 
-        sudo dpkg -i libssl1.1_1.1.1-1ubuntu2.1~18.04.23_amd64.deb
-        sudo dpkg -i libssl-dev_1.1.1-1ubuntu2.1~18.04.23_amd64.deb
-        sudo dpkg -i cassandra-cpp-driver_2.16.0-1_amd64.deb 
-        sudo dpkg -i cassandra-cpp-driver-dev_2.16.0-1_amd64.deb
-        
-    - name: 🧱 Configure with CMake
-      run: |
-        mv boost boost_${{ env.BOOST_VERSION_UNDERSCORE }};
-        cd socketserver;  
-        cmake -DCMAKE_PREFIX_PATH=boost_${{ env.BOOST_VERSION_UNDERSCORE }}/boost -DCMAKE_BUILD_TYPE=Release .
-      env: 
-        Boost_NO_SYSTEM_PATHS: ON
+      - name: Install Cassandra driver on Linux
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          wget -q \
+            http://archive.ubuntu.com/ubuntu/pool/main/g/glibc/multiarch-support_2.27-3ubuntu1_amd64.deb
 
-    - name: 🏗️ Build
-      run: |
-        cd socketserver/
-        make
-        ls
+          wget -q \
+            http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1-1ubuntu2.1~18.04.23_amd64.deb
 
-    - name: 📦 Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: boost-websocket-${{ runner.os }}
-        path: |
-          socketserver/
-          *.exe
-          *.out
-          *.app
-          build/**/*.exe
-          build/**/*.out
-          build/**/*.app
+          wget -q \
+            http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl-dev_1.1.1-1ubuntu2.1~18.04.23_amd64.deb
+
+          wget -q \
+            https://downloads.datastax.com/cpp-driver/ubuntu/18.04/cassandra/v2.16.0/cassandra-cpp-driver_2.16.0-1_amd64.deb
+
+          wget -q \
+            https://downloads.datastax.com/cpp-driver/ubuntu/18.04/cassandra/v2.16.0/cassandra-cpp-driver-dev_2.16.0-1_amd64.deb
+
+          sudo dpkg -i multiarch-support_2.27-3ubuntu1_amd64.deb
+          sudo dpkg -i libssl1.1_1.1.1-1ubuntu2.1~18.04.23_amd64.deb
+          sudo dpkg -i libssl-dev_1.1.1-1ubuntu2.1~18.04.23_amd64.deb
+          sudo dpkg -i cassandra-cpp-driver_2.16.0-1_amd64.deb
+          sudo dpkg -i cassandra-cpp-driver-dev_2.16.0-1_amd64.deb
+
+          echo "CASSANDRA_PREFIX=/usr" >> "$GITHUB_ENV"
+
+      - name: Verify Cassandra driver on macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          echo "Cassandra prefix: ${CASSANDRA_PREFIX}"
+          find "${CASSANDRA_PREFIX}" \
+            -maxdepth 3 \
+            \( -name "libcassandra*" -o -name "cassandra.h" \) \
+            -print
+
+      - name: Configure with CMake
+        shell: bash
+        run: |
+          cmake \
+            -S socketserver \
+            -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBOOST_ROOT="${BOOST_ROOT}" \
+            -DBOOST_INCLUDEDIR="${BOOST_INCLUDEDIR}" \
+            -DBOOST_LIBRARYDIR="${BOOST_LIBRARYDIR}" \
+            -DBoost_NO_SYSTEM_PATHS=ON \
+            -DBoost_USE_STATIC_LIBS=ON \
+            -DCMAKE_PREFIX_PATH="${BOOST_ROOT};${CASSANDRA_PREFIX}"
+
+      - name: Build
+        shell: bash
+        run: |
+          cmake \
+            --build build \
+            --config Release \
+            --parallel 2
+
+      - name: Run tests
+        shell: bash
+        run: |
+          ctest \
+            --test-dir build \
+            --build-config Release \
+            --output-on-failure
+
+      - name: Display build artifacts
+        shell: bash
+        run: |
+          find build \
+            -type f \
+            \( -perm -111 -o -name "*.exe" -o -name "*.app" \) \
+            -print
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: boost-websocket-${{ runner.os }}
+          path: build/
+          if-no-files-found: error
+          retention-days: 7
