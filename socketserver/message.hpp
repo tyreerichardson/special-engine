@@ -4,6 +4,7 @@
 #include <string>
 #include <ctime>
 #include <sstream>
+#include <iomanip>
 #include <boost/json.hpp>
 
 class Message {

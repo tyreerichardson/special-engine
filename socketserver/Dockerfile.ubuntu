@@ -1,0 +1,26 @@
+# Ubuntu ARM64 validation; build with socketserver as the Docker context.
+FROM ubuntu:24.04
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential cmake git ca-certificates python3 \
+    libboost-thread-dev libboost-system-dev libboost-json-dev \
+    libuv1-dev libssl-dev zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /validation
+COPY CMakeLists.txt server.cpp message.hpp user.hpp cassconnect.hpp /validation/socketserver/
+COPY tests /validation/socketserver/tests
+# First build proves OFF does not need Cassandra headers or libraries.
+RUN cmake -S socketserver -B build/off -DENABLE_CASSANDRA=OFF \
+    -DCMAKE_BUILD_TYPE=Release && cmake --build build/off -j4 \
+    && ctest --test-dir build/off --output-on-failure
+RUN git clone --depth 1 --branch 2.17.1 \
+    https://github.com/apache/cassandra-cpp-driver.git /tmp/cassandra-driver \
+    && cmake -S /tmp/cassandra-driver -B /tmp/cassandra-driver-build \
+       -DCMAKE_BUILD_TYPE=Release \
+    && cmake --build /tmp/cassandra-driver-build -j4 \
+    && cmake --install /tmp/cassandra-driver-build && ldconfig
+RUN cmake -S socketserver -B build/on -DENABLE_CASSANDRA=ON \
+    -DCMAKE_BUILD_TYPE=Release && cmake --build build/on -j4 \
+    && ctest --test-dir build/on --output-on-failure
+RUN cmake --version && c++ --version \
+    && ldd build/off/boost_websocket && ldd build/on/boost_websocket

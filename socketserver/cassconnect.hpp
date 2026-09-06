@@ -5,6 +5,8 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <stdexcept>
+#include <memory>
 
 #include "message.hpp"
 #include "user.hpp"
@@ -13,10 +15,11 @@ class CassConnect {
 private: 
     CassCluster* cluster = cass_cluster_new();
     CassSession* session = cass_session_new();
-    CassFuture* connect_future;
-    CassFuture* prep_future;
-    CassFuture* result_future;
-    CassStatement* statement;
+    using Future = std::unique_ptr<CassFuture, decltype(&cass_future_free)>;
+    using Statement = std::unique_ptr<CassStatement, decltype(&cass_statement_free)>;
+    using Prepared = std::unique_ptr<const CassPrepared, decltype(&cass_prepared_free)>;
+    using Result = std::unique_ptr<const CassResult, decltype(&cass_result_free)>;
+    using Iterator = std::unique_ptr<CassIterator, decltype(&cass_iterator_free)>;
 
     const char* server_host = "127.0.0.1";
 
@@ -28,7 +31,7 @@ private:
             size_t msg_length;
             cass_future_error_message(future, &msg, &msg_length);
             std::cerr << errorMsg << ": " << std::string(msg, msg_length) << std::endl;
-            exit(1);
+            throw std::runtime_error(errorMsg + ": " + std::string(msg, msg_length));
         }
     }
 
@@ -36,7 +39,13 @@ private:
     void execute_query(CassSession* session, const std::string& query) {
         CassStatement* statement = cass_statement_new(query.c_str(), 0);
         CassFuture* future = cass_session_execute(session, statement);
-        check_future(future, "Query failed: " + query);
+        try {
+            check_future(future, "Query failed: " + query);
+        } catch (...) {
+            cass_future_free(future);
+            cass_statement_free(statement);
+            throw;
+        }
         cass_future_free(future);
         cass_statement_free(statement);
     }
@@ -45,67 +54,55 @@ public:
 
     CassConnect() {
         cass_cluster_set_contact_points(cluster, this->server_host);
-            this->connect_future = cass_session_connect(session, cluster);
-        check_future(connect_future, "Unable to connect");
-        cass_future_free(connect_future);
-        std::cout << "Connected to CassDB" << std::endl;      
+        cass_cluster_set_connect_timeout(cluster, 3000);
+        cass_cluster_set_request_timeout(cluster, 3000);
+        CassFuture* future = cass_session_connect(session, cluster);
+        try {
+            check_future(future, "Unable to connect");
+        } catch (...) {
+            cass_future_free(future);
+            cass_session_free(session);
+            cass_cluster_free(cluster);
+            throw;
+        }
+        cass_future_free(future);
+        std::cout << "Connected to CassDB" << std::endl;
     }
+
+    CassConnect(const CassConnect&) = delete;
+    CassConnect& operator=(const CassConnect&) = delete;
+    ~CassConnect() { cass_cleanup(); }
 
     //loads chats
     std::vector<Message> load_messages(const char* username) {
-        std::string query = 
-            "SELECT message_id, message_from, message_to, content FROM special_engine.messages "
-            "WHERE message_from = ? AND created_day > current_date() - 30d ALLOW FILTERING";
-
-            const CassPrepared* prepared = nullptr;
-            prep_future = cass_session_prepare(session, query.c_str());
-            check_future(prep_future, "Query preparation failed");
-            prepared = cass_future_get_prepared(prep_future);
-            cass_future_free(prep_future);
-
-            statement = cass_prepared_bind(prepared);
-            cass_statement_bind_string(statement, 0, username);
-
-            result_future = cass_session_execute(session, statement);
-            check_future(result_future, "Query execution failed");
-
-            const CassResult* result = cass_future_get_result(result_future);
-            CassIterator* rows = cass_iterator_from_result(result);
-
-            std::cout << "=== Messages where " << "message_from" << " = " << username << " ===" << std::endl;
-            std::vector<Message> messages;
-            while(cass_iterator_next(rows)) {
-                const CassRow* row = cass_iterator_get_row(rows);
-
-                const char* from; size_t from_len;
-                const char* to; size_t to_len;
-                const char* body; size_t body_len;
-
-                cass_value_get_string(cass_row_get_column(row, 1), &from, &from_len);
-                cass_value_get_string(cass_row_get_column(row, 2), &to, &to_len);
-                cass_value_get_string(cass_row_get_column(row, 3), &body, &body_len);
-
-                Message message;
-                message.message_from = std::string(from, from_len);
-                message.message_to = std::string(to, to_len);
-                message.content = std::string(body, body_len);
-                messages.push_back(message);
-                // std::cout << "From: " << std::string(from, from_len)
-                //           << "\nTo: " << std::string(to, to_len)
-                //           << "\nBody: " << std::string(body, body_len) << std::endl;
-
-            }
-
-            cass_iterator_free(rows);
-            cass_result_free(result);
-            cass_future_free(result_future);
-            cass_statement_free(statement);
-            cass_prepared_free(prepared);
-
-            // Cleanup
-            //cass_cleanup();
-            
-            return messages;
+        const char* query = "SELECT message_id, message_from, message_to, content "
+            "FROM special_engine.messages WHERE message_from = ? "
+            "AND created_day > current_date() - 30d ALLOW FILTERING";
+        Future preparation(cass_session_prepare(session, query), cass_future_free);
+        check_future(preparation.get(), "Query preparation failed");
+        Prepared prepared(cass_future_get_prepared(preparation.get()), cass_prepared_free);
+        Statement statement(cass_prepared_bind(prepared.get()), cass_statement_free);
+        cass_statement_bind_string(statement.get(), 0, username);
+        Future future(cass_session_execute(session, statement.get()), cass_future_free);
+        check_future(future.get(), "Query execution failed");
+        Result result(cass_future_get_result(future.get()), cass_result_free);
+        Iterator rows(cass_iterator_from_result(result.get()), cass_iterator_free);
+        std::vector<Message> messages;
+        while (cass_iterator_next(rows.get())) {
+            const CassRow* row = cass_iterator_get_row(rows.get());
+            const char *from, *to, *body;
+            size_t from_len, to_len, body_len;
+            if (cass_value_get_string(cass_row_get_column(row, 1), &from, &from_len) != CASS_OK ||
+                cass_value_get_string(cass_row_get_column(row, 2), &to, &to_len) != CASS_OK ||
+                cass_value_get_string(cass_row_get_column(row, 3), &body, &body_len) != CASS_OK)
+                throw std::runtime_error("Invalid message row");
+            Message message;
+            message.message_from.assign(from, from_len);
+            message.message_to.assign(to, to_len);
+            message.content.assign(body, body_len);
+            messages.push_back(message);
+        }
+        return messages;
     }
 
     //gets messages
@@ -180,11 +177,14 @@ public:
     
     //Cleans up Cassandra connections
     void cass_cleanup() {
+        if (!session) return;
         CassFuture* close_future = cass_session_close(session);
         cass_future_wait(close_future);
         cass_future_free(close_future);
         cass_cluster_free(cluster);
         cass_session_free(session);
+        session = nullptr;
+        cluster = nullptr;
     }
 
 };

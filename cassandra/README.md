@@ -1,28 +1,44 @@
-# Cassandra Docker DB
+# Local Cassandra (optional)
 
-## Starting Cassandra locally
+Open Docker Desktop first. From the application root, create the database once:
 
-To run this database you need to have docker installed
-once you have docker installed you need to also have 'cqlsh' this is how you interact with cassandra within the terminal
+```sh
+docker pull --platform linux/arm64 cassandra:5.0.9
+docker run -d --name special-engine-cassandra --platform linux/arm64 \
+  -p 127.0.0.1:9042:9042 \
+  -v special-engine-cassandra-data:/var/lib/cassandra cassandra:5.0.9
+```
 
-while you are wihtin this folder you should run the command
-***   docker build -t my-cassandra-image .   ***
+These platform flags select native Apple Silicon/Linux ARM64; omit them on an x86
+host so Docker selects its native image. If the named container already exists:
 
-then once this is completed you should have an image downloaded to your docker
-and to run this image run this command 
-***   docker run --name my-cassandra -p 9042:9042 -d my-cassandra-image   ***
+```sh
+docker start special-engine-cassandra
+```
 
-and finally to connect to your locally running cassandra db you need to run this command
-***   cqlsh localhost 9042   ***
+Wait until this readiness query succeeds (first startup can take about a minute):
 
+```sh
+docker exec special-engine-cassandra cqlsh -e 'SELECT release_version FROM system.local;'
+```
 
-## Intantiating the tables
+Apply schema and sample data once:
 
-To copy over the data to initialize the tables
-run this script from this directory
-***   sudo docker cp ./data.cql my-cassandra:/tmp/data.cql   ***
+```sh
+docker exec -i special-engine-cassandra cqlsh < cassandra/data.cql
+```
 
-you should see a message if this was ran successfully
+Keyspace/table creation uses IF NOT EXISTS, but seed inserts generate new IDs and
+timestamps. Reapplying the script can add more sample messages. The users table
+starts empty. No separate host cqlsh installation or sudo is needed.
 
-now you should be able to execute this script
-***   sudo docker exec -it my-cassandra cqlsh -f /tmp/data.cql   ***
+```sh
+docker exec -it special-engine-cassandra cqlsh
+docker logs --tail 50 special-engine-cassandra
+docker stop --time 60 special-engine-cassandra
+```
+
+The named volume retains data when the container stops. The database and C++ driver
+are separate dependencies; see the server README for driver installation. The
+Dockerfile pins the same official version but does not automatically execute SQL
+or CQL scripts during startup.
