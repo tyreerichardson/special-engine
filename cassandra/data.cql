@@ -14,12 +14,12 @@ CREATE TABLE IF NOT EXISTS special_engine.messages (
 
 -- Insert some data
 INSERT INTO special_engine.messages
-(message_id, message_from, message_to, content, created_at)
-VALUES (uuid(), 'tyree', 'alice', 'Hey Alice!', toTimeStamp(now()));
+(message_id, message_from, message_to, content, created_at, created_day)
+VALUES (uuid(), 'tyree', 'alice', 'Hey Alice!', toTimeStamp(now()), current_date());
 
 INSERT INTO special_engine.messages
-(message_id, message_from, message_to, content, created_at)
-VALUES (uuid(), 'alice', 'tyree', 'Hey Tyree, How are you?', toTimeStamp(now()));
+(message_id, message_from, message_to, content, created_at, created_day)
+VALUES (uuid(), 'alice', 'tyree', 'Hey Tyree, How are you?', toTimeStamp(now()), current_date());
 
 -- Create a table for the users
 CREATE TABLE IF NOT EXISTS special_engine.users (
